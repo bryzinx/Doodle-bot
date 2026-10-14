@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Doodle Bot</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#ffd23f">
+<meta name="description" content="Converse com o Doodle Bot direto do navegador.">
+<link rel="manifest" href="doodlebot-manifest.webmanifest">
+<link rel="icon" href="doodlebot-icone.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="doodlebot-icone-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,700&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+:root{
+  --amarelo:#ffd23f;
+  --amarelo-fundo:#e0a800;
+  --tinta:#0a0a0b;
+  --giz:#f5efdc;
+  --giz-fraco:#a9a493;
+  --noite:#09090a;
+  --cartao:#1b1b1e;
+  --cartao-alto:#232327;
+  --linha:#2d2d32;
+  --perigo:#ff5a45;
+  --ui:'Bricolage Grotesque',ui-sans-serif,system-ui,'Segoe UI',Roboto,sans-serif;
+  --marcador:'Permanent Marker','Marker Felt','Chalkboard SE','Comic Sans MS',cursive;
+  --topo:env(safe-area-inset-top,0px);
+  --base:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;background:#000;color:var(--giz);font-family:var(--ui);overscroll-behavior:none}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--amarelo);outline-offset:2px}
+[hidden]{display:none!important}
+svg{display:block}
+
+/* ================= INTRO ================= */
+#intro{position:fixed;inset:0;z-index:60;background:var(--amarelo);color:var(--tinta);overflow:hidden;display:grid;place-items:center;
+  padding:calc(24px + var(--topo)) 20px calc(24px + var(--base));clip-path:circle(150vmax at 50% 50%)}
+#intro .papel{position:absolute;inset:0;background-image:var(--ruido);opacity:.5;mix-blend-mode:multiply;pointer-events:none}
+#intro .canto{position:absolute;width:min(48vw,300px,36vh);aspect-ratio:1;pointer-events:none;z-index:1;overflow:visible}
+#intro .tl{top:calc(2.5% + var(--topo));left:2%}#intro .tr{top:calc(2.5% + var(--topo));right:2%}
+#intro .bl{bottom:calc(2.5% + var(--base));left:2%}#intro .br{bottom:calc(2.5% + var(--base));right:2%}
+.rabiscos path,.rabiscos circle{fill:none;stroke:var(--tinta);stroke-width:3.6;stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:1 1;stroke-dashoffset:1;animation:desenha 1.1s cubic-bezier(.5,.1,.3,1) forwards;animation-delay:var(--d,0s)}
+@keyframes desenha{to{stroke-dashoffset:0}}
+
+.bloco{grid-area:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;max-width:640px;
+  position:relative;z-index:2;transition:opacity .35s ease,transform .45s cubic-bezier(.6,0,.3,1)}
+#intro[data-etapa="titulo"] .bloco-nome{opacity:0;transform:translateY(60px) rotate(2deg);pointer-events:none}
+#intro[data-etapa="nome"] .bloco-titulo{opacity:0;transform:translateY(-80px) rotate(-6deg);pointer-events:none}
+
+.titulo{font-family:var(--marcador);text-align:center;transform:rotate(-3deg);filter:url(#tremor);user-select:none}
+.titulo .play{display:flex;align-items:center;justify-content:center;gap:.35em;font-size:clamp(30px,9vw,58px);line-height:1;
+  clip-path:inset(0 100% 0 0);animation:varre .55s .25s ease-out forwards}
+@keyframes varre{to{clip-path:inset(-10% -10% -10% -10%)}}
+.titulo .play svg{width:.95em;height:.95em;overflow:visible}
+.titulo .play path{fill:var(--tinta);stroke:var(--tinta);stroke-width:5;stroke-linejoin:round}
+.titulo h1{margin:.04em 0 0;font-weight:400;font-size:clamp(74px,25vw,196px);line-height:.84;letter-spacing:-.015em}
+.titulo h1 .palavra{display:block}
+.letra{display:inline-block;opacity:0;transform:translateY(-46px) rotate(var(--r,0deg));animation:cai .5s cubic-bezier(.2,1.5,.4,1) forwards;
+  animation-delay:calc(.85s + var(--i) * .075s)}
+@keyframes cai{to{opacity:1;transform:none}}
+.titulo .sublinhado{width:min(78%,420px);margin:.1em auto 0;overflow:visible}
+.titulo .sublinhado path{fill:none;stroke:var(--tinta);stroke-width:7;stroke-linecap:round;stroke-dasharray:1 1;stroke-dashoffset:1;
+  animation:desenha .7s 1.9s ease-out forwards}
+
+.bloco-nome{gap:20px;text-align:center}
+.pergunta{font-family:var(--marcador);font-weight:400;font-size:clamp(42px,12.5vw,100px);line-height:.96;margin:0;transform:rotate(-2deg)}
+.campo{position:relative;width:min(100%,460px)}
+.campo input{width:100%;background:transparent;border:0;border-radius:0;color:var(--tinta);font-family:var(--marcador);
+  font-size:clamp(30px,8.5vw,50px);text-align:center;padding:6px 4px 12px;outline:none;caret-color:var(--tinta)}
+.campo input::placeholder{color:rgba(10,10,11,.32)}
+.campo .risco{position:absolute;left:0;right:0;bottom:0;width:100%;height:14px;overflow:visible}
+.campo .risco path{fill:none;stroke:var(--tinta);stroke-width:5;stroke-linecap:round}
+.campo.tremer{animation:tremer .4s}
+@keyframes tremer{20%{transform:translateX(-10px) rotate(-1deg)}40%{transform:translateX(9px) rotate(1deg)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
+.bora{border:0;background:var(--tinta);color:var(--amarelo);font-family:var(--marcador);font-size:clamp(26px,6.5vw,34px);
+  padding:10px 34px 12px;border-radius:16px 10px 18px 9px;transform:rotate(2.5deg);box-shadow:5px 6px 0 rgba(10,10,11,.28);transition:transform .12s,box-shadow .12s}
+.bora:active{transform:rotate(2.5deg) translate(4px,5px);box-shadow:1px 1px 0 rgba(10,10,11,.28)}
+
+/* ================= CHAT ================= */
+#app{position:fixed;inset:0;display:flex;justify-content:center;background:#000}
+.chat{position:relative;width:100%;max-width:780px;height:100%;display:flex;flex-direction:column;background-color:var(--noite);
+  background-image:var(--papel);background-size:300px 300px}
+@media (min-width:900px){
+  .chat{height:calc(100% - 36px);margin:18px 0;border-radius:24px;border:1px solid var(--linha);overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.7)}
+}
+
+.topo{position:relative;z-index:5;display:flex;align-items:center;gap:12px;padding:calc(10px + var(--topo)) 10px 10px 14px;
+  background:#121214;border-bottom:1px solid var(--linha)}
+.topo::after{content:"";position:absolute;left:0;right:0;bottom:-7px;height:7px;pointer-events:none;
+  background:var(--rabisco-topo) repeat-x left center/46px 7px;opacity:.55}
+.avatar{width:42px;height:42px;flex:none}
+.titulos{flex:1;min-width:0}
+.titulos strong{display:block;font-family:var(--marcador);font-weight:400;font-size:21px;line-height:1.1;letter-spacing:.01em}
+.titulos small{display:block;font-size:13px;color:var(--giz-fraco);margin-top:1px;min-height:1.2em}
+.titulos small.on{color:var(--amarelo)}
+.btn-icone{width:42px;height:42px;border-radius:50%;border:0;background:transparent;display:grid;place-items:center;flex:none}
+.btn-icone:active{background:rgba(255,255,255,.08)}
+.btn-icone svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+.popmenu{position:absolute;right:10px;top:calc(60px + var(--topo));z-index:20;min-width:210px;background:var(--cartao-alto);border:1px solid var(--linha);
+  border-radius:14px;padding:6px;box-shadow:0 18px 50px rgba(0,0,0,.65);transform-origin:top right;animation:pop .16s ease-out}
+@keyframes pop{from{opacity:0;transform:scale(.94)}}
+.popmenu button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:11px 12px;border-radius:9px;font-size:15.5px}
+.popmenu button:hover,.popmenu button:active{background:rgba(255,210,63,.12)}
+.popmenu button.perigo{color:var(--perigo)}
+
+.mensagens{flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 12px 10px;scroll-behavior:smooth;overscroll-behavior:contain;
+  display:flex;flex-direction:column;-webkit-overflow-scrolling:touch}
+.mensagens::-webkit-scrollbar{width:6px}
+.mensagens::-webkit-scrollbar-thumb{background:#34343a;border-radius:6px}
+.dia{align-self:center;margin:14px 0 6px;padding:4px 12px;border-radius:999px;background:rgba(255,210,63,.1);color:var(--amarelo);font-size:12.5px;
+  border:1px dashed rgba(255,210,63,.35)}
+
+.linha{display:flex;margin-top:10px;position:relative;touch-action:pan-y;animation:entra .22s ease-out}
+.linha.junto{margin-top:3px}
+.linha.eu{justify-content:flex-end}
+@keyframes entra{from{opacity:0;transform:translateY(8px) scale(.98)}}
+.linha .responder-dica{position:absolute;left:4px;top:50%;margin-top:-15px;width:30px;height:30px;border-radius:50%;background:var(--amarelo);color:var(--tinta);
+  display:grid;place-items:center;opacity:0;transform:scale(.4);transition:opacity .1s,transform .1s;pointer-events:none}
+.linha .responder-dica svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.linha.puxando .responder-dica{opacity:1;transform:scale(1)}
+.linha.destaque .bolha{animation:destaque 1.3s ease}
+@keyframes destaque{0%,60%{box-shadow:0 0 0 3px var(--amarelo)}}
+
+.bolha{position:relative;max-width:min(84%,540px);padding:7px 10px 5px;border-radius:17px;font-size:15.5px;line-height:1.38;
+  overflow-wrap:anywhere;user-select:text;-webkit-user-select:text;transition:transform .12s}
+.bot .bolha{background:var(--cartao);border:1px solid var(--linha);border-top-left-radius:5px;box-shadow:0 2px 0 #000}
+.eu .bolha{background:var(--amarelo);color:var(--tinta);border-top-right-radius:5px;box-shadow:0 2px 0 var(--amarelo-fundo)}
+.bot.junto .bolha{border-top-left-radius:17px}
+.eu.junto .bolha{border-top-right-radius:17px}
+.texto{white-space:pre-wrap}
+.texto b{font-weight:700}
+.texto code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9em;background:rgba(127,127,127,.22);padding:1px 5px;border-radius:5px;white-space:pre-wrap}
+.texto a{color:inherit;text-decoration:underline;text-underline-offset:2px;word-break:break-all}
+.bot .texto a{color:var(--amarelo)}
+.texto .caixa{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.84em;letter-spacing:-.02em}
+.meta{display:flex;align-items:center;justify-content:flex-end;gap:4px;margin:1px 0 -1px 14px;font-size:11px;opacity:.62;white-space:nowrap;user-select:none;float:right;padding-top:3px}
+.bolha::after{content:"";display:block;clear:both}
+.ticks{width:17px;height:11px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.ticks.lida{color:#0d6efd;opacity:1}
+.eu .ticks.lida{color:#0a0a0b}
+.ticks.erro{color:var(--perigo)}
+button.reenviar{border:0;background:none;padding:0;color:var(--perigo);font-size:11px;font-weight:700}
+
+.citacao{display:block;width:100%;text-align:left;border:0;margin:0 0 5px;padding:5px 9px;border-radius:9px;background:rgba(0,0,0,.2);border-left:4px solid var(--amarelo);
+  font-size:13.5px;line-height:1.3;color:inherit}
+.eu .citacao{background:rgba(0,0,0,.12);border-left-color:var(--tinta)}
+.citacao b{display:block;font-size:12.5px;color:var(--amarelo)}
+.eu .citacao b{color:var(--tinta)}
+.citacao span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;opacity:.85;white-space:pre-wrap}
+
+.bolha.midia{padding:4px 4px 5px}
+.bolha.midia .texto{padding:5px 6px 0}
+.bolha.midia .meta{margin-right:6px}
+.bolha.midia .citacao{margin:2px 2px 5px;width:calc(100% - 4px)}
+.foto{display:block;max-width:100%;width:290px;border-radius:13px;background:#101012;min-height:90px;object-fit:cover;cursor:zoom-in}
+.bolha.midia video.foto{cursor:default;max-height:420px}
+.bolha.tipo-figurinha{background:none;border:0;box-shadow:none;padding:0}
+.bolha.tipo-figurinha .foto{width:168px;background:none;min-height:0;object-fit:contain;filter:drop-shadow(0 3px 0 rgba(0,0,0,.45));cursor:default}
+.bolha.tipo-figurinha .meta{position:absolute;right:4px;bottom:4px;background:rgba(0,0,0,.55);color:#fff;border-radius:999px;padding:1px 7px;margin:0;float:none}
+.bolha.tipo-figurinha .citacao{background:var(--cartao);margin-bottom:4px}
+.umavez{position:absolute;left:12px;top:12px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.62);color:#fff;display:grid;place-items:center;font-size:12px;
+  font-weight:700;border:1.5px dashed #fff}
+.expirou{display:grid;place-items:center;width:230px;height:130px;border-radius:13px;border:2px dashed var(--linha);color:var(--giz-fraco);font-size:14px;text-align:center;padding:10px}
+
+.audio{display:flex;align-items:center;gap:10px;width:min(280px,64vw);padding:4px 6px 0 2px}
+.audio .tocar{flex:none;width:40px;height:40px;border-radius:50%;border:0;display:grid;place-items:center;background:var(--amarelo);color:var(--tinta)}
+.eu .audio .tocar{background:var(--tinta);color:var(--amarelo)}
+.audio .tocar svg{width:18px;height:18px;fill:currentColor}
+.audio .onda{flex:1;height:30px;display:flex;align-items:center;gap:2px;cursor:pointer}
+.audio .onda i{flex:1;min-width:2px;border-radius:2px;background:currentColor;opacity:.3;transition:opacity .1s}
+.audio .onda i.on{opacity:1}
+.audio small{font-size:11.5px;opacity:.7;min-width:34px;text-align:right}
+.audio .vel{border:0;border-radius:999px;background:rgba(127,127,127,.25);font-size:11px;font-weight:700;padding:3px 7px;display:none}
+.audio.tocando .vel{display:block}
+.arquivo{display:flex;align-items:center;gap:10px;padding:8px 10px;color:inherit;text-decoration:none}
+
+.digitando{align-self:flex-start;margin-top:10px;padding:12px 14px;border-radius:17px;border-top-left-radius:5px;background:var(--cartao);border:1px solid var(--linha);display:flex;gap:5px}
+.digitando i{width:7px;height:7px;border-radius:50%;background:var(--amarelo);animation:pulo 1s infinite}
+.digitando i:nth-child(2){animation-delay:.15s}.digitando i:nth-child(3){animation-delay:.3s}
+@keyframes pulo{0%,60%,100%{transform:none;opacity:.5}30%{transform:translateY(-5px);opacity:1}}
+
+.descer{position:absolute;right:14px;bottom:calc(var(--h-rodape,70px) + 14px);z-index:6;width:44px;height:44px;border-radius:50%;border:1px solid var(--linha);background:var(--cartao-alto);
+  display:grid;place-items:center;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+.descer svg{width:20px;height:20px;fill:none;stroke:var(--giz);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.descer b{position:absolute;top:-7px;right:-4px;min-width:20px;height:20px;border-radius:10px;background:var(--amarelo);color:var(--tinta);font-size:12px;display:grid;place-items:center;padding:0 5px}
+
+.rodape{position:relative;z-index:5;padding:6px 10px calc(10px + var(--base));background:linear-gradient(to top,#09090a 60%,rgba(9,9,10,0))}
+.atalhos{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 9px;scrollbar-width:none}
+.atalhos::-webkit-scrollbar{display:none}
+.atalhos button{flex:none;border:1.6px dashed #55555c;background:rgba(9,9,10,.7);border-radius:999px;padding:6px 13px;font-size:14.5px;color:var(--giz)}
+.atalhos button:active{background:var(--amarelo);color:var(--tinta);border-color:var(--amarelo)}
+
+.resp{display:flex;align-items:center;gap:10px;margin:0 2px 7px;padding:7px 8px 7px 11px;border-radius:13px;background:var(--cartao-alto);border-left:4px solid var(--amarelo)}
+.resp div{flex:1;min-width:0;font-size:13.5px}
+.resp b{display:block;color:var(--amarelo);font-size:12.5px}
+.resp span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.85}
+.resp button{border:0;background:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:var(--giz-fraco)}
+.resp button svg{width:18px;height:18px;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;fill:none}
+
+.linha-envio{display:flex;align-items:flex-end;gap:8px}
+.pilula{flex:1;min-width:0;display:flex;align-items:flex-end;background:#161618;border:1.5px solid var(--linha);border-radius:26px;padding:3px}
+.pilula:focus-within{border-color:rgba(255,210,63,.65)}
+.pilula textarea{flex:1;min-width:0;background:transparent;border:0;outline:none;resize:none;color:var(--giz);font:inherit;font-size:16px;line-height:1.35;
+  padding:10px 4px;max-height:128px;height:44px}
+.pilula textarea::placeholder{color:#76736a}
+.pilula .btn-icone{width:42px;height:42px;color:var(--giz-fraco)}
+.pilula .bang{font-family:var(--marcador);font-size:24px;color:var(--amarelo);line-height:1;padding-bottom:3px}
+.enviar{flex:none;width:50px;height:50px;border-radius:50%;border:0;background:var(--amarelo);color:var(--tinta);display:grid;place-items:center;
+  box-shadow:0 3px 0 var(--amarelo-fundo);transition:transform .1s,box-shadow .1s,background .15s}
+.enviar:active{transform:translateY(3px);box-shadow:0 0 0 var(--amarelo-fundo)}
+.enviar svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;margin-left:-2px}
+.enviar.vazio{background:#2a2a2e;color:#77746a;box-shadow:0 3px 0 #141416}
+
+.paleta{position:absolute;left:10px;right:10px;bottom:100%;z-index:8;max-height:min(46vh,330px);overflow-y:auto;background:#151517;border:1px solid var(--linha);
+  border-radius:16px;padding:5px;box-shadow:0 -10px 40px rgba(0,0,0,.6);margin-bottom:-2px}
+.item-cmd{display:flex;align-items:baseline;gap:10px;width:100%;text-align:left;border:0;background:transparent;padding:9px 11px;border-radius:10px}
+.item-cmd:hover,.item-cmd.sel{background:rgba(255,210,63,.12)}
+.item-cmd b{color:var(--amarelo);font-weight:700;white-space:nowrap}
+.item-cmd em{font-style:normal;color:var(--giz-fraco);font-size:13px;white-space:nowrap}
+.item-cmd span{font-size:13.5px;opacity:.85;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ================= FOLHAS / MODAIS ================= */
+.fundo{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.62);opacity:0;pointer-events:none;transition:opacity .2s}
+.fundo.aberto{opacity:1;pointer-events:auto}
+.folha{position:fixed;left:0;right:0;bottom:0;margin:0 auto;z-index:41;width:100%;max-width:600px;max-height:88dvh;display:flex;flex-direction:column;
+  background:#151517;border:1px solid var(--linha);border-bottom:0;border-radius:24px 24px 0 0;transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.9,.3,1);
+  padding-bottom:var(--base)}
+.folha.aberto{transform:none}
+.folha header{display:flex;align-items:center;gap:8px;padding:16px 14px 8px 20px}
+.folha header h2{flex:1;margin:0;font-family:var(--marcador);font-weight:400;font-size:24px}
+.folha .corpo{overflow-y:auto;padding:4px 14px 18px}
+.busca{width:100%;background:#0f0f11;border:1.5px solid var(--linha);border-radius:12px;padding:11px 14px;color:var(--giz);font:inherit;font-size:16px;outline:none;margin-bottom:8px}
+.busca:focus{border-color:rgba(255,210,63,.65)}
+.grupo h3{margin:14px 6px 4px;font-family:var(--marcador);font-weight:400;font-size:18px;color:var(--amarelo)}
+.opcoes{display:grid;gap:8px}
+.opcao{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:13px 14px;border-radius:14px;border:1.5px dashed #4b4b52;background:transparent;font-size:16px}
+.opcao:active{background:rgba(255,210,63,.12);border-color:var(--amarelo)}
+.opcao svg{width:24px;height:24px;flex:none;fill:none;stroke:var(--amarelo);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.opcao small{display:block;color:var(--giz-fraco);font-size:13px}
+.acoes{display:flex;gap:10px;margin-top:14px}
+.btn{flex:1;border:0;border-radius:14px;padding:13px 16px;font-size:16px;font-weight:700;background:var(--cartao-alto);color:var(--giz)}
+.btn.principal{background:var(--amarelo);color:var(--tinta);box-shadow:0 3px 0 var(--amarelo-fundo)}
+.btn.perigo{background:var(--perigo);color:#fff}
+.previa{display:grid;place-items:center;background:#0c0c0d;border-radius:16px;overflow:hidden;margin-bottom:12px;max-height:44dvh}
+.previa img,.previa video{max-width:100%;max-height:44dvh;display:block}
+.campo-texto{width:100%;background:#0f0f11;border:1.5px solid var(--linha);border-radius:12px;padding:12px 14px;color:var(--giz);font:inherit;font-size:16px;outline:none}
+.campo-texto:focus{border-color:rgba(255,210,63,.65)}
+.chave{display:flex;align-items:center;gap:12px;margin:12px 2px 0;font-size:15px}
+.chave input{width:20px;height:20px;accent-color:var(--amarelo)}
+.dica{color:var(--giz-fraco);font-size:13.5px;margin:8px 2px 0;line-height:1.4}
+.codigo{display:block;width:100%;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;letter-spacing:.02em;padding:14px 8px;border-radius:12px;
+  background:#0f0f11;border:1.5px dashed var(--amarelo);color:var(--amarelo);word-break:break-all;user-select:all}
+
+.luz{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.94);display:grid;place-items:center;padding:16px}
+.luz img{max-width:100%;max-height:86dvh;border-radius:8px}
+.luz a{position:absolute;bottom:calc(18px + var(--base));left:50%;transform:translateX(-50%);color:var(--tinta);background:var(--amarelo);padding:10px 20px;border-radius:999px;text-decoration:none;font-weight:700}
+.luz button{position:absolute;top:calc(14px + var(--topo));right:14px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff}
+.luz button svg{width:22px;height:22px;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;fill:none;margin:auto}
+
+.aviso{position:fixed;left:50%;top:calc(14px + var(--topo));z-index:80;transform:translate(-50%,-30px);opacity:0;background:var(--amarelo);color:var(--tinta);font-weight:700;
+  padding:10px 18px;border-radius:999px;box-shadow:0 8px 26px rgba(0,0,0,.5);transition:transform .25s,opacity .25s;max-width:92vw;text-align:center;font-size:14.5px}
+.aviso.on{transform:translate(-50%,0);opacity:1}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+  .letra{opacity:1;transform:none}.titulo .play{clip-path:none}
+}
+</style>
+</head>
+<body>
+
+<!-- filtros e símbolos reutilizados -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="tremor" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.018 0.03" numOctaves="2" seed="2" result="r">
+        <animate attributeName="seed" values="2;5;8;3;6" dur="0.9s" calcMode="discrete" repeatCount="indefinite"/>
+      </feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="r" scale="4.5" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <symbol id="rosto" viewBox="0 0 64 64">
+      <path d="M32 5C47 4 60 17 59 33C58 49 46 60 31 59C16 58 5 46 5 31C5 16 17 6 32 5Z" fill="#ffd23f" stroke="#0a0a0b" stroke-width="3.4" stroke-linejoin="round"/>
+      <path d="M27 6C24 0 31 -1 33 4" fill="none" stroke="#0a0a0b" stroke-width="3" stroke-linecap="round"/>
+      <ellipse cx="23" cy="28" rx="3.2" ry="4.4" fill="#0a0a0b"/>
+      <ellipse cx="41" cy="28" rx="3.2" ry="4.4" fill="#0a0a0b"/>
+      <path d="M20 40C26 49 38 49 44 39" fill="none" stroke="#0a0a0b" stroke-width="3.4" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ================= INTRO ================= -->
+<section id="intro" data-etapa="titulo" aria-label="Doodle Bot">
+  <div class="papel"></div>
+
+  <svg class="rabiscos canto tl" viewBox="0 0 200 200" aria-hidden="true">
+    <path pathLength="1" style="--d:.2s" d="M40 70 L50 44 L60 70 L86 72 L66 89 L74 115 L50 100 L28 115 L35 89 L14 72 Z"/>
+    <path pathLength="1" style="--d:.45s" d="M96 30 l12 -14 l12 14 l12 -14 l12 14"/>
+  </svg>
+  <svg class="rabiscos canto tr" viewBox="0 0 200 200" aria-hidden="true">
+    <path pathLength="1" style="--d:.5s" d="M130 70 C130 40 176 38 178 72 C180 108 122 116 112 76 C104 42 152 16 172 40"/>
+    <path pathLength="1" style="--d:1s" d="M52 120 l16 16 M68 120 l-16 16"/>
+  </svg>
+  <svg class="rabiscos canto bl" viewBox="0 0 200 200" aria-hidden="true">
+    <path pathLength="1" style="--d:1.5s" d="M44 60 C28 42 10 64 44 88 C78 64 60 42 44 60 Z"/>
+    <path pathLength="1" style="--d:1.1s" d="M14 150 q18 -34 36 0 t36 0 t36 0"/>
+    <path pathLength="1" style="--d:1.3s" d="M110 100 C135 50 170 40 196 56"/>
+    <path pathLength="1" style="--d:1.9s" d="M174 36 L198 58 L168 68"/>
+  </svg>
+  <svg class="rabiscos canto br" viewBox="0 0 200 200" aria-hidden="true">
+    <path pathLength="1" style="--d:.8s" d="M120 20 L88 92 L118 92 L94 164 L152 78 L122 78 L148 20 Z"/>
+    <circle pathLength="1" style="--d:1.6s" cx="40" cy="130" r="17"/>
+    <path pathLength="1" style="--d:1.7s" d="M24 60 c8 -10 18 -10 26 0 c8 10 18 10 26 0"/>
+  </svg>
+
+  <div class="bloco bloco-titulo">
+    <div class="titulo">
+      <div class="play">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3.5 L20.5 12 L5 20.5 Z"/></svg>
+        <span>play</span>
+      </div>
+      <h1 aria-label="doodle bot"><span class="palavra" id="letras-doodle"></span><span class="palavra" id="letras-bot"></span></h1>
+      <svg class="sublinhado" viewBox="0 0 400 24" aria-hidden="true"><path pathLength="1" d="M6 14 C70 4 130 20 200 11 S330 6 394 12"/></svg>
+    </div>
+  </div>
+
+  <form class="bloco bloco-nome" id="form-nome" autocomplete="off">
+    <label class="pergunta" for="nome">qual o seu nome</label>
+    <div class="campo" id="campo-nome">
+      <input id="nome" name="nome" type="text" maxlength="24" placeholder="escreve aqui" enterkeyhint="go" autocapitalize="words" autocorrect="off" spellcheck="false">
+      <svg class="risco" viewBox="0 0 400 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 8 C60 2 120 11 190 6 S320 9 397 5"/></svg>
+    </div>
+    <button type="submit" class="bora" id="bora">bora</button>
+  </form>
+</section>
+
+<!-- ================= CHAT ================= -->
+<div id="app">
+  <main class="chat" id="chat">
+    <header class="topo">
+      <svg class="avatar" aria-hidden="true"><use href="#rosto"/></svg>
+      <div class="titulos">
+        <strong>Doodle Bot</strong>
+        <small id="status">conectando…</small>
+      </div>
+      <button class="btn-icone" id="btn-menu" aria-label="Menu" aria-haspopup="true">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/></svg>
+      </button>
+    </header>
+
+    <div class="popmenu" id="popmenu" hidden role="menu">
+      <button role="menuitem" data-acao="comandos">Todos os comandos</button>
+      <button role="menuitem" data-acao="codigo">Meu código de acesso</button>
+      <button role="menuitem" data-acao="nome">Trocar nome</button>
+      <button role="menuitem" class="perigo" data-acao="limpar">Limpar conversa</button>
+    </div>
+
+    <div class="mensagens" id="mensagens" aria-live="polite" aria-label="Conversa com o Doodle Bot"></div>
+
+    <button class="descer" id="descer" hidden aria-label="Ir para a última mensagem">
+      <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      <b id="nao-lidas" hidden>0</b>
+    </button>
+
+    <footer class="rodape" id="rodape">
+      <div class="paleta" id="paleta" hidden role="listbox" aria-label="Comandos"></div>
+
+      <div class="atalhos" id="atalhos" aria-label="Atalhos de comandos"></div>
+
+      <div class="resp" id="resp" hidden>
+        <div><b id="resp-quem"></b><span id="resp-texto"></span></div>
+        <button id="resp-x" aria-label="Cancelar resposta"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+
+      <div class="linha-envio">
+        <div class="pilula">
+          <button class="btn-icone bang" id="btn-cmds" aria-label="Lista de comandos">!</button>
+          <textarea id="texto" rows="1" placeholder="Mensagem" enterkeyhint="send" autocomplete="off" autocapitalize="sentences" aria-label="Mensagem"></textarea>
+          <button class="btn-icone" id="btn-anexo" aria-label="Enviar foto, vídeo ou figurinha">
+            <svg viewBox="0 0 24 24"><path d="M21 11.5l-8.6 8.6a5.5 5.5 0 01-7.8-7.8l8.9-8.9a3.7 3.7 0 015.2 5.2l-8.9 8.9a1.8 1.8 0 01-2.6-2.6l8.2-8.2"/></svg>
+          </button>
+        </div>
+        <button class="enviar vazio" id="btn-enviar" aria-label="Enviar">
+          <svg viewBox="0 0 24 24"><path d="M3.5 11.2L20.5 3.5 13 20.5l-2.6-6.9z"/><path d="M10.4 13.6l5.2-5.2"/></svg>
+        </button>
+      </div>
+    </footer>
+  </main>
+</div>
+
+<input type="file" id="arq-midia" accept="image/*,video/*" hidden>
+<input type="file" id="arq-fig" accept="image/webp" hidden>
+
+<div class="fundo" id="fundo"></div>
+<section class="folha" id="folha" role="dialog" aria-modal="true" aria-labelledby="folha-titulo" aria-hidden="true">
+  <header>
+    <h2 id="folha-titulo"></h2>
+    <button class="btn-icone" id="folha-x" aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </header>
+  <div class="corpo" id="folha-corpo"></div>
+</section>
+
+<div class="aviso" id="aviso" role="status"></div>
+<script>
+(() => {
+'use strict'
+
+// Se hospedar o site em outro lugar (GitHub Pages etc.), coloque aqui o endereço do bot (https do túnel).
+// Se o bot serve o site, deixe vazio.
+const API = (window.DOODLE_API || '').replace(/\/$/, '')
+
+const $ = (s, r = document) => r.querySelector(s)
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem('doodle.' + k); return v === null ? d : JSON.parse(v) } catch { return d } },
+  set(k, v) { try { localStorage.setItem('doodle.' + k, JSON.stringify(v)) } catch {} },
+  del(k) { try { localStorage.removeItem('doodle.' + k) } catch {} }
+}
+const hex = (n) => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => b.toString(16).padStart(2, '0')).join('')
+const url = (p) => /^(https?:|blob:|data:)/.test(p) ? p : API + p
+const esperar = (ms) => new Promise(r => setTimeout(r, ms))
+
+function h(tag, props = {}, ...kids) {
+  const e = document.createElement(tag)
+  for (const [k, v] of Object.entries(props)) {
+    if (v === false || v == null) continue
+    if (k === 'class') e.className = v
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v)
+    else if (k === 'html') e.innerHTML = v
+    else e.setAttribute(k, v === true ? '' : v)
+  }
+  for (const k of kids.flat()) if (k != null && k !== false) e.append(k.nodeType ? k : document.createTextNode(k))
+  return e
+}
+const svg = (d, cls = '') => h('span', { html: `<svg viewBox="0 0 24 24" class="${cls}">${d}</svg>` }).firstChild
+
+// ---------- decoração gerada (papel de parede, ruído, risquinho do topo) ----------
+const dataSvg = (s) => `url("data:image/svg+xml,${encodeURIComponent(s)}")`
+const rootStyle = document.documentElement.style
+rootStyle.setProperty('--papel', dataSvg(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" fill="none" stroke="#ffd23f" stroke-opacity=".085" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M40 38l7-18 7 18 19 2-15 12 5 19-16-10-16 10 5-19-15-12z"/>
+  <path d="M200 34c8-18 34-16 38 2s-18 32-34 20-6-40 14-40"/>
+  <path d="M236 150l-20 44h18l-14 40 34-52h-20l14-32z"/>
+  <path d="M60 170c-12-14-28 2-4 22 24-20 8-36-4-22z"/>
+  <path d="M96 262q10-22 20 0t20 0 20 0"/>
+  <path d="M150 110l12 12M162 110l-12 12"/><path d="M20 250l10 10M30 250l-10 10"/>
+  <circle cx="150" cy="40" r="9"/><circle cx="270" cy="270" r="12"/>
+  <path d="M120 190c26-26 56-20 70 4M178 184l12 12-18 4"/>
+  <path d="M265 80v18M256 89h18"/></svg>`))
+rootStyle.setProperty('--ruido', dataSvg(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .55  0 0 0 0 .42  0 0 0 0 0  0 0 0 .5 0"/></filter><rect width="220" height="220" filter="url(#n)"/></svg>`))
+rootStyle.setProperty('--rabisco-topo', dataSvg(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="46" height="7"><path d="M1 4q5.7-5 11.5 0t11.5 0 11.5 0 9 0" fill="none" stroke="#ffd23f" stroke-width="1.6" stroke-linecap="round"/></svg>`))
+
+// ---------- estado ----------
+let token = LS.get('token', null)
+if (!token || !/^[a-f0-9]{32}$/.test(token)) { token = hex(16); LS.set('token', token) }
+
+const S = {
+  nome: LS.get('nome', ''),
+  msgs: LS.get('msgs', []).map(m => m.status === 'enviando' ? { ...m, status: 'erro' } : m),
+  seq: LS.get('seq', 0),
+  boot: LS.get('boot', ''),
+  conectado: false, botOn: true, digitando: false,
+  resp: null, naoLidas: 0
+}
+const porId = new Map()
+S.msgs.forEach(m => porId.set(m.id, m))
+
+const COMANDOS = [
+  ['Economia', 'banco', '', 'ver seu saldo'],
+  ['Economia', 'loja', '', 'itens à venda'],
+  ['Economia', 'comprar', '<item>', 'comprar um item da loja'],
+  ['Economia', 'inventario', '', 'seus itens'],
+  ['Economia', 'diario', '', 'bônus do dia'],
+  ['Economia', 'apostar', '<valor ou tudo>', 'cara ou coroa valendo grana'],
+  ['Economia', 'investir', '<valor>', 'rende em 30 minutos'],
+  ['Economia', 'resgatar', '', 'pega seu investimento'],
+  ['Diversão', 'sorte', '', 'sua sorte de hoje'],
+  ['Diversão', '8bola', '<pergunta>', 'bola 8 mágica'],
+  ['Diversão', 'dado', '', 'rola um dado'],
+  ['Diversão', 'frase', '', 'frase motivacional'],
+  ['Mídia', 'tocar', '<nome ou link>', 'baixa música em áudio ou vídeo'],
+  ['Mídia', 'baixar', '<link>', 'baixa vídeo de um link'],
+  ['Mídia', 'letra', '<artista - música>', 'letra da música'],
+  ['Mídia', 'fig', '', 'responda uma foto ou vídeo pra virar figurinha'],
+  ['Mídia', 'img', '', 'responda uma figurinha pra virar imagem'],
+  ['Mídia', 'revelar', '', 'responda uma mídia de visualização única'],
+  ['Inteligência artificial', 'criarimg', '<descrição>', 'cria uma imagem'],
+  ['Inteligência artificial', 'perguntar', '<pergunta>', 'tira uma dúvida'],
+  ['Inteligência artificial', 'explicar', '<assunto>', 'explica de forma simples'],
+  ['Inteligência artificial', 'historia', '<tema>', 'conta uma história'],
+  ['Inteligência artificial', 'piada', '[tema]', 'conta uma piada'],
+  ['Inteligência artificial', 'conselho', '[tema]', 'dá um conselho'],
+  ['Inteligência artificial', 'corrigir', '<texto>', 'corrige o português'],
+  ['Inteligência artificial', 'traduzir', '<texto>', 'traduz português ↔ inglês'],
+  ['Inteligência artificial', 'voz', '<texto>', 'transforma texto em áudio'],
+  ['Perfil', 'perfil', '', 'seu perfil completo'],
+  ['Perfil', 'nivel', '', 'seu nível e mensagens'],
+  ['Perfil', 'bio', '<texto>', 'define sua bio'],
+  ['Perfil', 'ig', '<usuário>', 'define seu Instagram'],
+  ['Utilidades', 'menu', '', 'menu completo do bot'],
+  ['Utilidades', 'ping', '', 'testa se o bot está vivo'],
+  ['Utilidades', 'horario', '', 'data e hora'],
+  ['Utilidades', 'calculo', '<conta>', 'faz uma conta'],
+  ['Utilidades', 'lembrete', '<minutos> <texto>', 'te avisa depois de um tempo'],
+  ['Utilidades', 'regras', '', 'regras do bot']
+].map(([g, c, a, d]) => ({ g, c, a, d, obrigatorio: a.startsWith('<') }))
+
+const ATALHOS = [['menu', 1], ['banco', 1], ['diario', 1], ['loja', 1], ['perfil', 1], ['sorte', 1], ['dado', 1], ['piada', 1], ['tocar ', 0], ['criarimg ', 0], ['perguntar ', 0]]
+
+// ---------- utilidades de texto ----------
+const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+function formatar(txt) {
+  let t = esc(String(txt).replace(/^\s+|\s+$/g, ''))
+  const blocos = []
+  t = t.replace(/```([\s\S]+?)```/g, (_, c) => { blocos.push(c); return `\u0000${blocos.length - 1}\u0000` })
+  t = t.replace(/(^|[\s(¿¡])\*([^*\n]+?)\*(?=$|[\s.,!?;:)\]])/g, '$1<b>$2</b>')
+  t = t.replace(/(^|[\s(])_([^_\n]+?)_(?=$|[\s.,!?;:)])/g, '$1<i>$2</i>')
+  t = t.replace(/(^|[\s(])~([^~\n]+?)~(?=$|[\s.,!?;:)])/g, '$1<s>$2</s>')
+  t = t.replace(/(https?:\/\/[^\s<]+[^\s<.,;:!?)\]])/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>')
+  t = t.split('\n').map(l => /^[╭│╰]/.test(l) ? `<span class="caixa">${l}</span>` : l).join('\n')
+  return t.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${blocos[i]}</code>`)
+}
+const hora = (t) => new Date(t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+const diaChave = (t) => new Date(t).toDateString()
+function rotuloDia(t) {
+  const d = new Date(t), hoje = new Date(), ont = new Date(Date.now() - 864e5)
+  if (d.toDateString() === hoje.toDateString()) return 'hoje'
+  if (d.toDateString() === ont.toDateString()) return 'ontem'
+  return d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })
+}
+const limparNome = (n) => String(n || '').replace(/[\u0000-\u001f\u007f*_~`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 24)
+const mmss = (s) => !isFinite(s) ? '0:00' : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
+
+const ROTULO_TIPO = { imagem: '📷 Foto', video: '🎬 Vídeo', gif: '🎞️ GIF', figurinha: '🏷️ Figurinha', audio: '🎵 Áudio', voz: '🎤 Mensagem de voz', documento: '📄 Arquivo' }
+const resumo = (m) => (ROTULO_TIPO[m.tipo] ? ROTULO_TIPO[m.tipo] + (m.texto ? ' · ' : '') : '') + (m.texto || '').replace(/\s+/g, ' ').trim().slice(0, 140)
+
+// ---------- toasts, folhas, confirmação ----------
+let tAviso
+function aviso(t) {
+  const a = $('#aviso'); a.textContent = t; a.classList.add('on')
+  clearTimeout(tAviso); tAviso = setTimeout(() => a.classList.remove('on'), 2800)
+}
+const folha = $('#folha'), fundo = $('#fundo')
+let aoFechar = null
+function abrirFolha(titulo, conteudo, fechar) {
+  $('#folha-titulo').textContent = titulo
+  const c = $('#folha-corpo'); c.replaceChildren(conteudo)
+  aoFechar = fechar || null
+  folha.setAttribute('aria-hidden', 'false'); folha.classList.add('aberto'); fundo.classList.add('aberto')
+}
+function fecharFolha() {
+  if (!folha.classList.contains('aberto')) return
+  folha.classList.remove('aberto'); fundo.classList.remove('aberto'); folha.setAttribute('aria-hidden', 'true')
+  const f = aoFechar; aoFechar = null; f && f()
+}
+fundo.addEventListener('click', fecharFolha)
+$('#folha-x').addEventListener('click', fecharFolha)
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { fecharFolha(); fecharMenu(); fecharLuz() } })
+function confirmar(titulo, texto, botao, fn) {
+  abrirFolha(titulo, h('div', {},
+    h('p', { class: 'dica', style: 'margin:0 2px 4px;font-size:15px' }, texto),
+    h('div', { class: 'acoes' },
+      h('button', { class: 'btn', onclick: fecharFolha }, 'Cancelar'),
+      h('button', { class: 'btn perigo', onclick: () => { fecharFolha(); fn() } }, botao))))
+}
+
+// ---------- ícones ----------
+const ICONE = {
+  resp: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 016 6v3"/>',
+  play: '<path d="M7 4.5v15l13-7.5z"/>', pausa: '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>',
+  arq: '<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/>',
+  foto: '<rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="11" r="2"/><path d="M21 16l-5-5-8 8"/>',
+  fig: '<path d="M4 6a2 2 0 012-2h12a2 2 0 012 2v8l-6 6H6a2 2 0 01-2-2z"/><path d="M14 20v-4a2 2 0 012-2h4"/>',
+  lista: '<path d="M8 6h12M8 12h12M8 18h12M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',
+  chave: '<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M16 7l3 3"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>'
+}
+function ticks(status) {
+  const s = h('span', { html: `<svg viewBox="0 0 17 11" class="ticks ${status === 'lida' ? 'lida' : status === 'erro' ? 'erro' : ''}">${
+    status === 'enviando' ? '<circle cx="8.5" cy="5.5" r="4"/><path d="M8.5 3.3v2.4l1.6 1"/>' :
+    status === 'erro' ? '<circle cx="8.5" cy="5.5" r="4.4"/><path d="M8.5 3.2v3M8.5 8.1v.1"/>' :
+    status === 'enviado' ? '<path d="M3 5.8l2.6 2.6L12 2.2"/>' :
+    '<path d="M1.5 5.8l2.6 2.6 6-6.2M7 8.4l.6.6 6.4-6.8"/>'}</svg>` })
+  return s.firstChild
+}
+
+// ---------- renderização ----------
+const lista = $('#mensagens')
+let ultimaMsg = null
+const digitandoEl = h('div', { class: 'digitando', 'aria-label': 'Doodle Bot está digitando' }, h('i'), h('i'), h('i'))
+
+function perto() { return lista.scrollHeight - lista.scrollTop - lista.clientHeight < 140 }
+function rolarFim(suave = true) {
+  lista.style.scrollBehavior = suave ? 'smooth' : 'auto'
+  lista.scrollTop = lista.scrollHeight
+}
+
+function criarCitacao(c) {
+  const alvo = h('button', { class: 'citacao', type: 'button', onclick: () => irPara(c.id) },
+    h('b', {}, c.de === 'eu' ? 'Você' : 'Doodle Bot'), h('span', {}, resumo(c) || '…'))
+  return alvo
+}
+function irPara(id) {
+  const el = lista.querySelector(`[data-id="${CSS.escape(id)}"]`)
+  if (!el) return aviso('essa mensagem ficou lá atrás')
+  lista.style.scrollBehavior = 'smooth'
+  el.scrollIntoView({ block: 'center' })
+  el.classList.remove('destaque'); void el.offsetWidth; el.classList.add('destaque')
+}
+
+function semMidia(texto) { return h('div', { class: 'expirou' }, texto || 'essa mídia saiu da memória do bot') }
+
+function criarMidia(m) {
+  const src = m.urlLocal || (m.url ? url(m.url) : '')
+  if (!src) return semMidia()
+  const falha = (e) => e.target.replaceWith(semMidia())
+  const abrirImg = () => abrirLuz(src, m.tipo)
+  if (m.tipo === 'imagem' || m.tipo === 'figurinha') {
+    return h('div', { style: 'position:relative' },
+      h('img', { class: 'foto', src, alt: m.tipo === 'figurinha' ? 'figurinha' : 'imagem', loading: 'lazy', onerror: falha, onclick: m.tipo === 'imagem' ? abrirImg : null }),
+      m.umaVez ? h('div', { class: 'umavez', title: 'visualização única' }, '1') : null)
+  }
+  if (m.tipo === 'gif') return h('video', { class: 'foto', src, autoplay: true, loop: true, muted: true, playsinline: true, onerror: falha })
+  if (m.tipo === 'video') return h('div', { style: 'position:relative' },
+    h('video', { class: 'foto', src, controls: true, preload: 'metadata', playsinline: true, onerror: falha }),
+    m.umaVez ? h('div', { class: 'umavez', title: 'visualização única' }, '1') : null)
+  if (m.tipo === 'audio' || m.tipo === 'voz') return criarAudio(m, src)
+  if (m.tipo === 'documento') {
+    const a = h('a', { class: 'arquivo', href: src, download: m.nome || 'arquivo', target: '_blank', rel: 'noopener' }, svg(ICONE.arq), m.nome || 'arquivo')
+    a.firstChild.style.cssText = 'width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2'
+    return a
+  }
+  return null
+}
+
+function criarAudio(m, src) {
+  const audio = new Audio(); audio.preload = 'metadata'; audio.src = src
+  const barras = Array.from({ length: 30 }, (_, i) => {
+    let x = 0; for (const ch of m.id + i) x = (x * 31 + ch.charCodeAt(0)) >>> 0
+    return h('i', { style: `height:${28 + (x % 72)}%` })
+  })
+  const onda = h('div', { class: 'onda', role: 'slider', 'aria-label': 'Progresso do áudio' }, barras)
+  const tempo = h('small', {}, '0:00')
+  const btn = h('button', { class: 'tocar', type: 'button', 'aria-label': 'Tocar áudio' })
+  const vel = h('button', { class: 'vel', type: 'button', 'aria-label': 'Velocidade' }, '1x')
+  const caixa = h('div', { class: 'audio' }, btn, onda, tempo, vel)
+  const icone = (tocando) => { btn.replaceChildren(svg(tocando ? ICONE.pausa : ICONE.play)); caixa.classList.toggle('tocando', tocando) }
+  icone(false)
+  btn.addEventListener('click', () => {
+    if (audio.paused) { document.querySelectorAll('audio').forEach(a => a.pause()); audio.play().catch(() => aviso('não consegui tocar esse áudio')) } else audio.pause()
+  })
+  document.body.append(audio); audio.style.display = 'none'
+  audio.addEventListener('play', () => icone(true)); audio.addEventListener('pause', () => icone(false))
+  audio.addEventListener('ended', () => { icone(false); barras.forEach(b => b.classList.remove('on')); tempo.textContent = mmss(audio.duration) })
+  audio.addEventListener('loadedmetadata', () => { tempo.textContent = mmss(audio.duration) })
+  audio.addEventListener('error', () => { caixa.replaceWith(semMidia()) })
+  audio.addEventListener('timeupdate', () => {
+    const p = audio.duration ? audio.currentTime / audio.duration : 0
+    barras.forEach((b, i) => b.classList.toggle('on', i / barras.length < p))
+    tempo.textContent = mmss(audio.currentTime)
+  })
+  onda.addEventListener('click', e => { const r = onda.getBoundingClientRect(); if (audio.duration) audio.currentTime = ((e.clientX - r.left) / r.width) * audio.duration })
+  vel.addEventListener('click', () => { const v = audio.playbackRate === 1 ? 1.5 : audio.playbackRate === 1.5 ? 2 : 1; audio.playbackRate = v; vel.textContent = v + 'x' })
+  const obs = new MutationObserver(() => { if (!document.body.contains(caixa)) { audio.pause(); audio.remove(); obs.disconnect() } })
+  obs.observe(lista, { childList: true, subtree: true })
+  return caixa
+}
+
+function criarNo(m, junto) {
+  const eu = m.de === 'eu'
+  const midia = m.tipo !== 'texto'
+  const bolha = h('div', { class: `bolha tipo-${m.tipo}${midia ? ' midia' : ''}` })
+  if (m.citado) bolha.append(criarCitacao(m.citado))
+  if (midia) bolha.append(criarMidia(m) || '')
+  if (m.texto) bolha.append(h('div', { class: 'texto', html: formatar(m.texto) }))
+  const meta = h('span', { class: 'meta' }, hora(m.t))
+  if (eu) {
+    meta.append(ticks(m.status || 'enviado'))
+    if (m.status === 'erro') meta.append(h('button', { class: 'reenviar', type: 'button', onclick: () => reenviar(m) }, 'tentar de novo'))
+  }
+  bolha.append(meta)
+  return h('div', { class: `linha ${eu ? 'eu' : 'bot'}${junto ? ' junto' : ''}`, 'data-id': m.id },
+    h('div', { class: 'responder-dica' }, svg(ICONE.resp)), bolha)
+}
+
+function anexarNo(m, animar = true) {
+  const dentro = digitandoEl.parentNode === lista
+  if (dentro) digitandoEl.remove()
+  if (!ultimaMsg || diaChave(ultimaMsg.t) !== diaChave(m.t)) {
+    lista.append(h('div', { class: 'dia' }, rotuloDia(m.t))); ultimaMsg = null
+  }
+  const junto = ultimaMsg && ultimaMsg.de === m.de && m.t - ultimaMsg.t < 120000
+  const no = criarNo(m, junto)
+  if (!animar) no.style.animation = 'none'
+  lista.append(no)
+  ultimaMsg = m
+  if (dentro && S.digitando) lista.append(digitandoEl)
+}
+function renderTudo() {
+  lista.replaceChildren(); ultimaMsg = null
+  S.msgs.forEach(m => anexarNo(m, false))
+  if (S.digitando) lista.append(digitandoEl)
+  rolarFim(false)
+}
+function atualizarNo(m) {
+  const antigo = lista.querySelector(`[data-id="${CSS.escape(m.id)}"]`)
+  if (!antigo) return
+  const novo = criarNo(m, antigo.classList.contains('junto')); novo.style.animation = 'none'
+  antigo.replaceWith(novo)
+}
+
+let tSalvar
+function salvar() {
+  clearTimeout(tSalvar)
+  tSalvar = setTimeout(() => {
+    LS.set('msgs', S.msgs.slice(-250).map(({ urlLocal, ...m }) => m))
+    LS.set('seq', S.seq)
+  }, 300)
+}
+
+function adicionar(m, { notificar = false } = {}) {
+  if (porId.has(m.id)) return
+  S.msgs.push(m); porId.set(m.id, m)
+  if (S.msgs.length > 400) { const f = S.msgs.shift(); porId.delete(f.id) }
+  const colar = perto() || m.de === 'eu'
+  anexarNo(m)
+  if (colar) rolarFim(); else { S.naoLidas++; atualizarDescer() }
+  if (notificar && document.hidden) { naoLidasAba++; document.title = `(${naoLidasAba}) Doodle Bot` }
+  salvar()
+}
+function mudarStatus(m, status) { m.status = status; atualizarNo(m); salvar() }
+
+let naoLidasAba = 0
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { naoLidasAba = 0; document.title = 'Doodle Bot'; if (!S.conectado) conectar() } })
+
+function atualizarDescer() {
+  const longe = !perto()
+  $('#descer').hidden = !longe
+  $('#nao-lidas').hidden = !S.naoLidas; $('#nao-lidas').textContent = S.naoLidas
+}
+lista.addEventListener('scroll', () => { if (perto()) S.naoLidas = 0; atualizarDescer() })
+$('#descer').addEventListener('click', () => { S.naoLidas = 0; rolarFim(); atualizarDescer() })
+
+function atualizarStatus() {
+  const s = $('#status')
+  s.classList.remove('on')
+  if (!S.conectado) s.textContent = 'conectando…'
+  else if (!S.botOn) s.textContent = 'bot ligando…'
+  else if (S.digitando) { s.textContent = 'digitando…'; s.classList.add('on') }
+  else { s.textContent = 'online'; s.classList.add('on') }
+}
+
+// ---------- conexão com o bot (SSE) ----------
+let es = null, tentativas = 0, tReconectar
+function conectar() {
+  clearTimeout(tReconectar)
+  if (es) es.close()
+  es = new EventSource(`${API}/api/eventos?s=${token}&boot=${encodeURIComponent(S.boot)}&desde=${S.seq}`)
+  es.addEventListener('hello', e => {
+    const d = JSON.parse(e.data)
+    S.conectado = true; S.botOn = d.bot; tentativas = 0
+    if (d.reset) S.seq = 0
+    S.boot = d.boot; LS.set('boot', d.boot)
+    atualizarStatus()
+  })
+  es.onmessage = e => { try { receber(JSON.parse(e.data)) } catch {} }
+  es.onerror = () => {
+    S.conectado = false; atualizarStatus(); es.close()
+    tentativas++; tReconectar = setTimeout(conectar, Math.min(8000, 1200 * tentativas))
+  }
+}
+function receber(ev) {
+  if (ev.tipo === 'digitando') {
+    S.digitando = !!ev.ativo
+    if (S.digitando) { if (!digitandoEl.parentNode) { const c = perto(); lista.append(digitandoEl); if (c) rolarFim() } } else digitandoEl.remove()
+    atualizarStatus(); return
+  }
+  if (ev.seq != null) { if (ev.seq <= S.seq) return; S.seq = ev.seq }
+  const m = { id: ev.id, de: 'bot', tipo: ev.tipo, texto: ev.texto || '', url: ev.url, mid: ev.mid, nome: ev.nome, t: ev.t || Date.now(), ia: ev.ia }
+  if (ev.citadoId && porId.has(ev.citadoId)) {
+    const o = porId.get(ev.citadoId)
+    m.citado = { id: o.id, de: o.de, tipo: o.tipo, texto: o.texto }
+  }
+  // o bot respondeu: tudo que eu mandei até aqui foi "lido"
+  S.msgs.forEach(x => { if (x.de === 'eu' && (x.status === 'enviado' || x.status === 'enviando')) { x.status = 'lida'; atualizarNo(x) } })
+  S.digitando = false; digitandoEl.remove(); atualizarStatus()
+  adicionar(m, { notificar: true })
+}
+
+// ---------- envio ----------
+async function postar(corpo) {
+  const r = await fetch(url('/api/enviar'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) })
+  const d = await r.json().catch(() => ({}))
+  return { ok: r.ok, status: r.status, d }
+}
+const corpoCitado = (c) => c ? { id: c.id, mid: c.mid, texto: (c.texto || '').slice(0, 1500), deBot: c.de === 'bot', tipo: c.tipo } : undefined
+
+async function transmitir(m, citadoOrig) {
+  try {
+    const { ok, d } = await postar({ s: token, id: m.id, nome: S.nome, texto: m.texto, citado: corpoCitado(citadoOrig) })
+    if (!ok) { mudarStatus(m, 'erro'); aviso(d.erro || 'não consegui enviar'); return }
+    if (m.status !== 'lida') mudarStatus(m, 'enviado')
+    if (!d.bot) aviso('o bot ainda está ligando…')
+  } catch {
+    mudarStatus(m, 'erro'); aviso('sem conexão com o bot')
+  }
+}
+function enviarTexto(texto, citado = null) {
+  texto = texto.trim(); if (!texto) return
+  const m = { id: 'W' + hex(8), de: 'eu', tipo: 'texto', texto, t: Date.now(), status: 'enviando',
+    citado: citado ? { id: citado.id, de: citado.de, tipo: citado.tipo, texto: citado.texto } : null }
+  adicionar(m)
+  transmitir(m, citado)
+}
+function reenviar(m) {
+  m.status = 'enviando'; atualizarNo(m)
+  const c = m.citado && porId.get(m.citado.id)
+  transmitir(m, c || null)
+}
+
+// ---------- compositor ----------
+const campo = $('#texto'), btnEnviar = $('#btn-enviar'), paleta = $('#paleta')
+const toque = !matchMedia('(pointer:fine)').matches
+function ajustar() {
+  campo.style.height = '44px'
+  campo.style.height = Math.min(campo.scrollHeight, 128) + 'px'
+  btnEnviar.classList.toggle('vazio', !campo.value.trim())
+  $('#atalhos').hidden = !!campo.value || !paleta.hidden
+  document.documentElement.style.setProperty('--h-rodape', $('#rodape').offsetHeight + 'px')
+}
+function enviarDoCampo() {
+  const t = campo.value.trim(); if (!t) return
+  const c = S.resp; limparResp()
+  campo.value = ''; ajustar(); fecharPaleta()
+  enviarTexto(t, c)
+  if (!toque) campo.focus()
+}
+btnEnviar.addEventListener('click', () => { enviarDoCampo(); if (toque) campo.focus() })
+btnEnviar.addEventListener('mousedown', e => e.preventDefault())
+campo.addEventListener('input', () => { ajustar(); atualizarPaleta() })
+campo.addEventListener('keydown', e => {
+  if (!paleta.hidden) {
+    const itens = [...paleta.querySelectorAll('.item-cmd')]; let i = itens.findIndex(x => x.classList.contains('sel'))
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault(); itens[i]?.classList.remove('sel')
+      i = (i + (e.key === 'ArrowDown' ? 1 : -1) + itens.length) % itens.length
+      itens[i].classList.add('sel'); itens[i].scrollIntoView({ block: 'nearest' }); return
+    }
+    if (e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey && itens[i] && campo.value.trim() !== '!' + itens[i].dataset.c && campo.value.trim() !== '!' + itens[i].dataset.c + ' ')) {
+      e.preventDefault(); itens[i]?.click(); return
+    }
+  }
+  if (e.key === 'Enter' && !e.shiftKey && !toque) { e.preventDefault(); enviarDoCampo() }
+})
+
+function usarComando(c, enviarJa) {
+  const base = '!' + c
+  if (enviarJa) { const r = S.resp; limparResp(); campo.value = ''; ajustar(); fecharPaleta(); enviarTexto(base, r); return }
+  campo.value = base + ' '; ajustar(); fecharPaleta(); campo.focus()
+  campo.setSelectionRange(campo.value.length, campo.value.length)
+}
+function atualizarPaleta() {
+  const v = campo.value
+  if (!v.startsWith('!') || /\s/.test(v)) return fecharPaleta()
+  const q = v.slice(1).toLowerCase()
+  const achados = COMANDOS.filter(c => c.c.startsWith(q)).slice(0, 12)
+  if (!achados.length) return fecharPaleta()
+  paleta.replaceChildren(...achados.map((c, i) => h('button', { class: `item-cmd${i === 0 ? ' sel' : ''}`, type: 'button', role: 'option', 'data-c': c.c,
+    onmousedown: e => e.preventDefault(), onclick: () => usarComando(c.c, !c.a) },
+    h('b', {}, '!' + c.c), c.a ? h('em', {}, c.a) : null, h('span', {}, c.d))))
+  paleta.hidden = false; $('#atalhos').hidden = true
+}
+function fecharPaleta() { paleta.hidden = true; paleta.replaceChildren(); $('#atalhos').hidden = !!campo.value }
+
+const atalhos = $('#atalhos')
+ATALHOS.forEach(([c, ja]) => atalhos.append(h('button', { type: 'button', onclick: () => usarComando(c.trim(), !!ja) }, '!' + c.trim())))
+
+// ---------- responder ----------
+function definirResp(m) {
+  S.resp = m
+  $('#resp-quem').textContent = m.de === 'eu' ? 'Você' : 'Doodle Bot'
+  $('#resp-texto').textContent = resumo(m) || '…'
+  $('#resp').hidden = false; ajustar(); campo.focus()
+}
+function limparResp() { S.resp = null; $('#resp').hidden = true; ajustar() }
+$('#resp-x').addEventListener('click', limparResp)
+
+// toque longo / botão direito = ações; deslizar pra direita = responder; duplo clique = responder
+let pressTimer, sx = 0, sy = 0, puxando = null, longo = false
+const msgDe = (el) => { const l = el.closest('.linha'); return l ? porId.get(l.dataset.id) : null }
+function acoes(m) {
+  const itens = [h('button', { class: 'opcao', onclick: () => { fecharFolha(); definirResp(m) } }, svg(ICONE.resp), 'Responder')]
+  if (m.texto) itens.push(h('button', { class: 'opcao', onclick: async () => { fecharFolha(); try { await navigator.clipboard.writeText(m.texto); aviso('copiado') } catch { aviso('não deu pra copiar') } } }, svg(ICONE.arq), 'Copiar texto'))
+  if (m.url && m.tipo !== 'texto') itens.push(h('a', { class: 'opcao', href: m.urlLocal || url(m.url), download: m.nome || `doodle-${m.tipo}`, target: '_blank', rel: 'noopener', style: 'color:inherit;text-decoration:none', onclick: fecharFolha }, svg(ICONE.foto), 'Baixar mídia'))
+  abrirFolha('Mensagem', h('div', { class: 'opcoes' }, itens))
+}
+lista.addEventListener('contextmenu', e => { const m = msgDe(e.target); if (m && !e.target.closest('a,video')) { e.preventDefault(); acoes(m) } })
+lista.addEventListener('dblclick', e => { const m = msgDe(e.target); if (m && !e.target.closest('a,video,button')) definirResp(m) })
+lista.addEventListener('touchstart', e => {
+  const t = e.touches[0]; sx = t.clientX; sy = t.clientY; longo = false; puxando = null
+  const l = e.target.closest('.linha'); const m = msgDe(e.target)
+  if (!l || !m) return
+  puxando = { l, m }
+  clearTimeout(pressTimer); pressTimer = setTimeout(() => { longo = true; navigator.vibrate?.(12); acoes(m) }, 520)
+}, { passive: true })
+lista.addEventListener('touchmove', e => {
+  if (!puxando) return
+  const t = e.touches[0], dx = t.clientX - sx, dy = t.clientY - sy
+  if (Math.abs(dx) > 10 || Math.abs(dy) > 10) clearTimeout(pressTimer)
+  if (dx > 8 && Math.abs(dy) < 26) {
+    const d = Math.min(dx, 90) * .7
+    puxando.l.querySelector('.bolha').style.transform = `translateX(${d}px)`
+    puxando.l.classList.toggle('puxando', dx > 60)
+  }
+}, { passive: true })
+lista.addEventListener('touchend', e => {
+  clearTimeout(pressTimer)
+  if (!puxando) return
+  const b = puxando.l.querySelector('.bolha'); b.style.transform = ''
+  const foi = puxando.l.classList.contains('puxando'); puxando.l.classList.remove('puxando')
+  if (foi && !longo) { navigator.vibrate?.(8); definirResp(puxando.m) }
+  puxando = null
+}, { passive: true })
+lista.addEventListener('touchcancel', () => { clearTimeout(pressTimer); if (puxando) { puxando.l.querySelector('.bolha').style.transform = ''; puxando.l.classList.remove('puxando'); puxando = null } }, { passive: true })
+
+// ---------- lightbox ----------
+let luz = null
+function abrirLuz(src) {
+  fecharLuz()
+  luz = h('div', { class: 'luz', onclick: (e) => { if (e.target === luz) fecharLuz() } },
+    h('img', { src, alt: 'imagem ampliada' }),
+    h('button', { type: 'button', 'aria-label': 'Fechar', onclick: fecharLuz }, svg(ICONE.x)),
+    h('a', { href: src, download: 'doodle-bot', target: '_blank', rel: 'noopener' }, 'Baixar'))
+  document.body.append(luz)
+}
+function fecharLuz() { luz?.remove(); luz = null }
+
+// ---------- menu ----------
+const pop = $('#popmenu')
+function fecharMenu() { pop.hidden = true }
+$('#btn-menu').addEventListener('click', e => { e.stopPropagation(); pop.hidden = !pop.hidden })
+document.addEventListener('click', e => { if (!pop.hidden && !pop.contains(e.target)) fecharMenu() })
+pop.addEventListener('click', e => {
+  const a = e.target.closest('button')?.dataset.acao; if (!a) return
+  fecharMenu()
+  if (a === 'comandos') abrirComandos()
+  if (a === 'codigo') abrirCodigo()
+  if (a === 'nome') trocarNome()
+  if (a === 'limpar') confirmar('Limpar conversa?', 'Isso apaga só as mensagens deste aparelho. Seu saldo, itens e nível continuam com o bot.', 'Limpar', () => {
+    S.msgs = []; porId.clear(); LS.set('msgs', []); renderTudo(); boasVindas()
+  })
+})
+$('#btn-cmds').addEventListener('click', abrirComandos)
+
+function abrirComandos() {
+  const busca = h('input', { class: 'busca', type: 'search', placeholder: 'Buscar comando', 'aria-label': 'Buscar comando', autocomplete: 'off' })
+  const conteudo = h('div', {})
+  const desenhar = () => {
+    const q = busca.value.trim().toLowerCase().replace(/^!/, '')
+    const grupos = new Map()
+    COMANDOS.filter(c => !q || c.c.includes(q) || c.d.toLowerCase().includes(q)).forEach(c => { if (!grupos.has(c.g)) grupos.set(c.g, []); grupos.get(c.g).push(c) })
+    conteudo.replaceChildren(...(grupos.size ? [...grupos].map(([g, cs]) => h('div', { class: 'grupo' }, h('h3', {}, g),
+      cs.map(c => h('button', { class: 'item-cmd', type: 'button', onclick: () => { fecharFolha(); usarComando(c.c, !c.a) } },
+        h('b', {}, '!' + c.c), c.a ? h('em', {}, c.a) : null, h('span', {}, c.d))))) : [h('p', { class: 'dica' }, 'nenhum comando com esse nome')]))
+  }
+  busca.addEventListener('input', desenhar); desenhar()
+  abrirFolha('Comandos', h('div', {}, busca, conteudo,
+    h('p', { class: 'dica' }, 'Pra figurinha, imagem ou revelar: segure (ou deslize pra direita) numa mídia, toque em responder e mande o comando.')))
+}
+
+function abrirCodigo() {
+  const entrada = h('input', { class: 'campo-texto', placeholder: 'Colar outro código', autocomplete: 'off', spellcheck: 'false' })
+  abrirFolha('Código de acesso', h('div', {},
+    h('p', { class: 'dica', style: 'margin:0 2px 10px' }, 'Seu saldo, itens e nível ficam ligados a este código. Guarde ele: com ele você entra de outro aparelho e não perde nada.'),
+    h('code', { class: 'codigo' }, token),
+    h('div', { class: 'acoes' }, h('button', { class: 'btn principal', onclick: async () => { try { await navigator.clipboard.writeText(token); aviso('código copiado') } catch { aviso('selecione e copie o código') } } }, 'Copiar código')),
+    h('p', { class: 'dica', style: 'margin-top:22px' }, 'Já tem um código de outro aparelho?'), entrada,
+    h('div', { class: 'acoes' }, h('button', { class: 'btn', onclick: () => {
+      const c = entrada.value.trim().toLowerCase()
+      if (!/^[a-f0-9]{32}$/.test(c)) return aviso('esse código não é válido')
+      confirmar('Trocar de conta?', 'A conversa deste aparelho será apagada e você passa a usar o saldo e os itens do outro código.', 'Trocar', () => {
+        LS.set('token', c); LS.del('msgs'); LS.del('seq'); LS.del('boot'); location.reload()
+      })
+    } }, 'Entrar com esse código'))))
+}
+
+// ---------- anexos ----------
+$('#btn-anexo').addEventListener('click', () => {
+  abrirFolha('Enviar', h('div', { class: 'opcoes' },
+    h('button', { class: 'opcao', onclick: () => { fecharFolha(); $('#arq-midia').click() } }, svg(ICONE.foto), h('span', {}, 'Foto ou vídeo', h('small', {}, 'pra usar com !fig ou !revelar'))),
+    h('button', { class: 'opcao', onclick: () => { fecharFolha(); $('#arq-fig').click() } }, svg(ICONE.fig), h('span', {}, 'Figurinha', h('small', {}, 'arquivo .webp, pra usar com !img')))))
+})
+$('#arq-midia').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) previa(f, false) })
+$('#arq-fig').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) previa(f, true) })
+
+async function reduzir(file) {
+  if (!/^image\/(jpeg|png)$/.test(file.type)) return file
+  try {
+    const bmp = await createImageBitmap(file)
+    const esc = Math.min(1, 1600 / Math.max(bmp.width, bmp.height))
+    if (esc === 1 && file.size < 2.5e6) return file
+    const c = document.createElement('canvas'); c.width = Math.round(bmp.width * esc); c.height = Math.round(bmp.height * esc)
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height)
+    return await new Promise(r => c.toBlob(b => r(b || file), 'image/jpeg', .86))
+  } catch { return file }
+}
+function previa(file, figurinha) {
+  const ehVideo = file.type.startsWith('video/'), ehImg = file.type.startsWith('image/')
+  if (!ehVideo && !ehImg) return aviso('só dá pra mandar imagem ou vídeo')
+  if (figurinha && file.type !== 'image/webp') return aviso('figurinha tem que ser .webp')
+  if (ehVideo && file.size > 16 * 1024 * 1024) return aviso('vídeo grande demais (máximo 16 MB)')
+  const src = URL.createObjectURL(file)
+  const legenda = h('input', { class: 'campo-texto', placeholder: figurinha ? '' : 'Legenda ou comando (ex: !fig)', maxlength: 500, autocomplete: 'off', hidden: figurinha })
+  const umaVez = h('input', { type: 'checkbox', id: 'umavez' })
+  const el = ehVideo ? h('video', { src, controls: true, playsinline: true }) : h('img', { src, alt: 'prévia' })
+  abrirFolha(figurinha ? 'Enviar figurinha' : 'Enviar mídia', h('div', {},
+    h('div', { class: 'previa' }, el), legenda,
+    figurinha ? null : h('label', { class: 'chave', for: 'umavez' }, umaVez, 'Visualização única'),
+    figurinha ? null : h('p', { class: 'dica' }, 'Escreva !fig na legenda e eu devolvo como figurinha. Com visualização única, use !revelar.'),
+    h('div', { class: 'acoes' },
+      h('button', { class: 'btn', onclick: fecharFolha }, 'Cancelar'),
+      h('button', { class: 'btn principal', onclick: () => { const l = legenda.value.trim(), u = umaVez.checked; fecharFolha(); enviarMidia(file, figurinha, l, u) } }, 'Enviar'))),
+    () => URL.revokeObjectURL(src))
+}
+async function enviarMidia(arquivo, figurinha, legenda, umaVez) {
+  const file = ehImagemReduzivel(arquivo) ? await reduzir(arquivo) : arquivo
+  const tipo = file.type.startsWith('video/') ? 'video' : figurinha ? 'figurinha' : 'imagem'
+  const ehComando = legenda.startsWith('!')
+  const m = { id: 'W' + hex(8), de: 'eu', tipo, texto: ehComando ? '' : legenda, urlLocal: URL.createObjectURL(file), umaVez: umaVez && !figurinha, t: Date.now(), status: 'enviando' }
+  adicionar(m)
+  try {
+    const q = new URLSearchParams({ s: token, tipo: figurinha ? 'figurinha' : tipo, umaVez: m.umaVez ? '1' : '0' })
+    const r = await fetch(url('/api/midia?' + q), { method: 'POST', headers: { 'Content-Type': file.type || 'application/octet-stream' }, body: file })
+    const d = await r.json().catch(() => ({}))
+    if (!r.ok) { mudarStatus(m, 'erro'); m.status = 'erro'; return aviso(d.erro || 'não consegui enviar a mídia') }
+    m.mid = d.mid; m.url = d.url; if (m.status !== 'lida') mudarStatus(m, 'enviado')
+    if (ehComando) enviarTexto(legenda, { id: m.id, de: 'eu', tipo: m.tipo, texto: '', mid: m.mid })
+  } catch { mudarStatus(m, 'erro'); aviso('sem conexão com o bot') }
+}
+const ehImagemReduzivel = (f) => /^image\/(jpeg|png)$/.test(f.type)
+
+// ---------- boas-vindas ----------
+function boasVindas() {
+  adicionar({ id: 'L' + hex(6), de: 'bot', tipo: 'texto', t: Date.now(), local: true,
+    texto: `e aí, ${S.nome}! 👋 eu sou o *Doodle Bot*.\n\nmanda *!menu* pra ver tudo que eu faço, ou só conversa comigo mesmo.\n\npra virar figurinha: segure ou deslize uma foto pra direita, toque em responder e mande *!fig*.` })
+}
+
+// ---------- intro ----------
+const intro = $('#intro'), formNome = $('#form-nome'), inputNome = $('#nome')
+function montarLetras() {
+  let i = 0
+  const por = (id, palavra) => { const c = $(id); [...palavra].forEach(ch => { c.append(h('span', { class: 'letra', style: `--i:${i++};--r:${(Math.random() * 16 - 8).toFixed(1)}deg` }, ch)) }) }
+  por('#letras-doodle', 'doodle'); por('#letras-bot', 'bot')
+}
+let etapa = 'titulo', tIntro
+function irNome() {
+  if (etapa !== 'titulo') return
+  etapa = 'nome'; clearTimeout(tIntro); intro.dataset.etapa = 'nome'
+  inputNome.value = S.nome || ''
+  setTimeout(() => { inputNome.focus(); inputNome.select() }, 520)
+}
+intro.addEventListener('click', e => { if (etapa === 'titulo') irNome() })
+formNome.addEventListener('submit', async e => {
+  e.preventDefault()
+  const nome = limparNome(inputNome.value)
+  if (!nome) { const c = $('#campo-nome'); c.classList.remove('tremer'); void c.offsetWidth; c.classList.add('tremer'); inputNome.focus(); return }
+  S.nome = nome; LS.set('nome', nome)
+  const r = $('#bora').getBoundingClientRect()
+  const x = r.left + r.width / 2, y = r.top + r.height / 2
+  iniciarChat()
+  intro.style.transition = 'clip-path .65s cubic-bezier(.7,0,.2,1)'
+  intro.style.clipPath = `circle(150vmax at ${x}px ${y}px)`
+  void intro.offsetWidth
+  intro.style.clipPath = `circle(0px at ${x}px ${y}px)`
+  inputNome.blur()
+  await esperar(700)
+  intro.hidden = true
+  if (!toque) campo.focus()
+})
+function trocarNome() {
+  etapa = 'nome'; intro.hidden = false; intro.dataset.etapa = 'nome'
+  intro.style.transition = 'none'; intro.style.clipPath = 'circle(150vmax at 50% 50%)'
+  inputNome.value = S.nome
+  setTimeout(() => { inputNome.focus(); inputNome.select() }, 200)
+}
+
+let iniciou = false
+function iniciarChat() {
+  if (!iniciou) {
+    iniciou = true
+    renderTudo()
+    if (!S.msgs.length) boasVindas()
+    ajustar(); conectar()
+  }
+}
+
+// ---------- boot ----------
+montarLetras()
+ajustar()
+tIntro = setTimeout(irNome, 3600)
+new ResizeObserver(() => ajustar()).observe($('#rodape'))
+window.addEventListener('online', () => { if (!S.conectado) conectar() })
+window.addEventListener('pagehide', () => { salvar() })
+})()
+</script>
+</body>
+</html>
